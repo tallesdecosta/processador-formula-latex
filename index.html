@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="style.css">
+        <title>Processador de Fórmula Latex</title>
+    </head>
+    <body>
+        <header>
+            <h1>Processador de Fórmula Latex</h1>
+        </header>
+        <main>
+            <div class="wrapper">
+                <p id="formula-displayer"></p>
+            </div>
+            <div class="wrapper">
+                <label for="formula">Insira sua fórmula no padrão Latex aqui:</label>
+                <input style="width: 100%;" type="text" name="formula" id="formula">
+                <button style="width: fit-content; padding: 5px 15px" onclick="mostrarFormula();">Processar</button>
+            </div>
+        </main>
+        <footer>
+            <p class="p-footer">Solução desenvolvida pelos estudantes Talles Telles da Costa (<a href="https://github.com/tallesdecosta">Github</a>, <a href="https://www.linkedin.com/in/tallesdecosta/">Linkedin</a>) e Victor Ryuki Tamezava (<a href="https://github.com/VicRuk">Github</a>, <a href="https://www.linkedin.com/in/victor-tamezava/">Linkedin</a>).</p>
+        </footer>
+    </body>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="scripts/main.js"></script>
+</html>
