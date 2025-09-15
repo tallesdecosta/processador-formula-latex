@@ -1,82 +1,88 @@
 // Adicione esta função para limpar os resultados antes de cada conversão
 
+// Adicione esta função para limpar os resultados antes de cada conversão
 function clearOutputs() {
 
-    document.getElementById('formula-displayer').innerHTML = '';
+    // limpa qualquer render anterior
+    document.getElementById('formula-displayer').innerHTML = '';
 
-    document.getElementById('conjuntiva-displayer').innerHTML = '';
+    // compatível com IDs antigos (se existirem)
+    if (document.getElementById('conjuntiva-displayer')) document.getElementById('conjuntiva-displayer').innerHTML = '';
+    if (document.getElementById('disjuntiva-displayer')) document.getElementById('disjuntiva-displayer').innerHTML = '';
+    if (document.getElementById('clausal-displayer')) document.getElementById('clausal-displayer').innerHTML = '';
+    if (document.getElementById('horn-displayer')) document.getElementById('horn-displayer').innerHTML = '';
 
-    document.getElementById('disjuntiva-displayer').innerHTML = '';
+    // novos destinos: finais (cards 2x2) e passos (embaixo)
+    const ids = [
+        'final-conjuntiva','final-disjuntiva','final-clausal','final-horn',
+        'steps-conjuntiva','steps-disjuntiva','steps-clausal','steps-horn'
+    ];
 
-    document.getElementById('clausal-displayer').innerHTML = '';
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+    });
 
-    document.getElementById('horn-displayer').innerHTML = '';
+    // esconde seções até o parse ter sucesso
+    if (document.getElementById('formula-card'))  document.getElementById('formula-card').classList.add('hidden');
+    if (document.getElementById('results-grid'))  document.getElementById('results-grid').classList.add('hidden');
+    if (document.getElementById('procedures'))    document.getElementById('procedures').classList.add('hidden');
 
 }
 
 
 
-// Sua função principal, agora chamando todas as etapas
 
+// Função principal, agora chamando todas as etapas
 function mostrarFormula() {
 
-    // Adicionado para limpar a tela antes de começar
+    clearOutputs();
 
-    clearOutputs();
+    let formulaInput = document.getElementById('formula');
+    let formula = (formulaInput.value || '').trim();
 
+    // se não tem nada, não mostra nada
+    if (!formula) {
+        return;
+    }
 
+    try {
 
-    let formulaInput = document.getElementById('formula');
+        // parse primeiro — se falhar, nada aparece
+        let tokens = tokenizar(formula);
+        console.log(tokens)
+        let ast = fazerAST(tokens);
+        console.log(ast)
 
-    let formula = formulaInput.value;
+        // se chegou aqui deu certo → mostra seções
+        if (document.getElementById('formula-card'))  document.getElementById('formula-card').classList.remove('hidden');
+        if (document.getElementById('results-grid'))  document.getElementById('results-grid').classList.remove('hidden');
+        if (document.getElementById('procedures'))    document.getElementById('procedures').classList.remove('hidden');
 
+        // render da fórmula original (topo)
+        let formulaDisplayer = document.getElementById('formula-displayer');
+        formulaDisplayer.textContent = `$$${formula}$$`;
+        MathJax.typesetPromise([formulaDisplayer]);
 
+        // Chamadas para todas as conversões
+        convertToFNCP(ast);
+        convertToFNDP(ast);
+        convertToClausal(ast);
 
-    let formulaDisplayer = document.getElementById('formula-displayer');
+    } catch (error) {
 
+        console.error(error);
+        alert("Erro ao processar a fórmula: " + error.message);
 
+        // mantêm as seções ocultas caso dê erro
+        if (document.getElementById('formula-card'))  document.getElementById('formula-card').classList.add('hidden');
+        if (document.getElementById('results-grid'))  document.getElementById('results-grid').classList.add('hidden');
+        if (document.getElementById('procedures'))    document.getElementById('procedures').classList.add('hidden');
 
-    formulaDisplayer.textContent = `$$${formula}$$`;
-
-    MathJax.typesetPromise();
-
-   
-
-    try {
-
-
-
-        let tokens = tokenizar(formula);
-console.log(tokens)
-
-        let ast = fazerAST(tokens);
-console.log(ast)
-
-       
-
-        // Chamadas para todas as conversões
-
-        convertToFNCP(ast);
-
-        convertToFNDP(ast); // Nova chamada
-
-        convertToClausal(ast); // Nova chamada
-
-       
-
-    } catch (error) {
-
-
-
-        console.error(error);
-
-        alert("Erro ao processar a fórmula: " + error.message);
-
-
-
-    }
+    }
 
 }
+
 
 
 
@@ -953,25 +959,36 @@ function distribute_or_over_and(node) {
 }
 
 // Função auxiliar para renderizar cada passo
-
 function renderStep(elementId, stepLatex, description = '') {
 
-    const container = document.getElementById(elementId);
+    const container = document.getElementById(elementId);
 
-    const p = document.createElement('p');
+    // bloco do passo (uma "seção")
+    const block = document.createElement('div');
+    block.className = 'step-block';
 
-    let content = description ? `<b>${description}:</b> ` : '';
+    // título / rótulo do passo
+    if (description) {
+        const title = document.createElement('div');
+        title.className = 'step-title';
+        title.textContent = description + ':';
+        block.appendChild(title);
+    }
 
-    content += `$$${stepLatex}$$`;
+    // fórmula embaixo, com scroll horizontal local
+    const math = document.createElement('div');
+    math.className = 'step-math';
+    if (stepLatex) {
+        math.innerHTML = `$$${stepLatex}$$`;
+    }
+    block.appendChild(math);
 
-    p.innerHTML = content;
+    container.appendChild(block);
 
-    container.appendChild(p);
-
-    // Pede ao MathJax para renderizar o novo conteúdo
-
-    MathJax.typesetPromise([p]);
-
+    // Renderiza apenas o bloco de matemática, se houver
+    if (stepLatex) {
+        MathJax.typesetPromise([math]);
+    }
 }
 
 
@@ -984,117 +1001,70 @@ function renderStep(elementId, stepLatex, description = '') {
 
 function convertToFNCP(originalAst) {
 
-    const containerId = 'conjuntiva-displayer';
+    // DESTINO DOS PASSOS (embaixo)
+    const containerId = 'steps-conjuntiva';
 
-    let ast = deepCopy(originalAst);
+    // DESTINO DO RESULTADO FINAL (card 2x2)
+    const finalContainerId = 'final-conjuntiva';
 
-    renderStep(containerId, ast_to_latex(ast), 'Fórmula Original');
+    let ast = deepCopy(originalAst);
+    renderStep(containerId, ast_to_latex(ast), 'Fórmula Original');
 
-   
+    let previousLatex = ast_to_latex(ast);
+    let currentLatex;
 
-    let previousLatex = ast_to_latex(ast);
+    // Passo 1: Eliminar Implicações
+    ast = eliminate_implications(ast);
+    currentLatex = ast_to_latex(ast);
+    if (currentLatex !== previousLatex) {
+        renderStep(containerId, currentLatex, '1. Eliminar Implicações');
+        previousLatex = currentLatex;
+    }
 
-    let currentLatex;
+    // Passo 2: Mover Negações para Dentro
+    ast = move_negations_in(ast);
+    currentLatex = ast_to_latex(ast);
+    if (currentLatex !== previousLatex) {
+        renderStep(containerId, currentLatex, '2. Mover Negações (De Morgan)');
+        previousLatex = currentLatex;
+    }
 
+    // Passo 3: Padronizar Variáveis
+    ast = standardize_variables(ast);
+    currentLatex = ast_to_latex(ast);
+    if (currentLatex !== previousLatex) {
+        renderStep(containerId, currentLatex, '3. Padronizar Variáveis');
+        previousLatex = currentLatex;
+    }
 
+    // Passo 4: Mover Quantificadores (Forma Prenex)
+    const prenexResult = move_quantifiers_out(ast);
+    // Remonta a AST a partir do resultado
+    let prenexAst = prenexResult.matrix;
+    for (let i = prenexResult.quantifiers.length - 1; i >= 0; i--) {
+        const q = prenexResult.quantifiers[i];
+        prenexAst = { tipo: 'Quantificador', quantificador: q.quantificador, variavel: q.variavel, escopo: prenexAst };
+    }
+    ast = prenexAst;
+    currentLatex = ast_to_latex(ast);
+    if (currentLatex !== previousLatex) {
+        renderStep(containerId, currentLatex, '4. Mover Quantificadores (Forma Prenex)');
+        previousLatex = currentLatex;
+    }
 
-    // Passo 1: Eliminar Implicações
+    // Passo 5: Aplicar Distributividade para FNC
+    ast = distribute_or_over_and(ast);
+    currentLatex = ast_to_latex(ast);
+    if (currentLatex !== previousLatex) {
+        renderStep(containerId, currentLatex, '5. Distribuir ∨ sobre ∧ (FNC)');
+        previousLatex = currentLatex;
+    }
 
-    ast = eliminate_implications(ast);
-
-    currentLatex = ast_to_latex(ast);
-
-    if (currentLatex !== previousLatex) {
-
-        renderStep(containerId, currentLatex, '1. Eliminar Implicações');
-
-        previousLatex = currentLatex;
-
-    }
-
-   
-
-    // Passo 2: Mover Negações para Dentro
-
-    ast = move_negations_in(ast);
-
-    currentLatex = ast_to_latex(ast);
-
-    if (currentLatex !== previousLatex) {
-
-        renderStep(containerId, currentLatex, '2. Mover Negações (De Morgan)');
-
-        previousLatex = currentLatex;
-
-    }
-
-
-
-    // Passo 3: Padronizar Variáveis
-
-    ast = standardize_variables(ast);
-
-    currentLatex = ast_to_latex(ast);
-
-    if (currentLatex !== previousLatex) {
-
-        renderStep(containerId, currentLatex, '3. Padronizar Variáveis');
-
-        previousLatex = currentLatex;
-
-    }
-
-
-
-    // Passo 4: Mover Quantificadores (Forma Prenex)
-
-    const prenexResult = move_quantifiers_out(ast);
-
-    // Remonta a AST a partir do resultado
-
-    let prenexAst = prenexResult.matrix;
-
-    for (let i = prenexResult.quantifiers.length - 1; i >= 0; i--) {
-
-        const q = prenexResult.quantifiers[i];
-
-        prenexAst = { tipo: 'Quantificador', quantificador: q.quantificador, variavel: q.variavel, escopo: prenexAst };
-
-    }
-
-    ast = prenexAst;
-
-    currentLatex = ast_to_latex(ast);
-
-    if (currentLatex !== previousLatex) {
-
-        renderStep(containerId, currentLatex, '4. Mover Quantificadores (Forma Prenex)');
-
-        previousLatex = currentLatex;
-
-    }
-
-
-
-    // Passo 5: Aplicar Distributividade para FNC
-
-    ast = distribute_or_over_and(ast);
-
-    currentLatex = ast_to_latex(ast);
-
-    if (currentLatex !== previousLatex) {
-
-        renderStep(containerId, currentLatex, '5. Distribuir ∨ sobre ∧ (FNC)');
-
-        previousLatex = currentLatex;
-
-    }
-
-   
-
-    renderStep(containerId, ast_to_latex(ast), 'Resultado Final (FNCP)');
+    // >>> RESULTADO FINAL no card
+    renderFinal(finalContainerId, ast_to_latex(ast), 'Resultado Final (FNCP)');
 
 }
+
 
 
 
@@ -1104,55 +1074,43 @@ function convertToFNCP(originalAst) {
 
 function convertToFNDP(originalAst) {
 
-    const containerId = 'disjuntiva-displayer';
+    const containerId = 'steps-disjuntiva';   // passos embaixo
+    const finalContainerId = 'final-disjuntiva'; // final no card
 
-    let ast = deepCopy(originalAst);
+    let ast = deepCopy(originalAst);
+    renderStep(containerId, ast_to_latex(ast), 'Fórmula Original');
 
-    renderStep(containerId, ast_to_latex(ast), 'Fórmula Original');
+    ast = eliminate_implications(ast);
+    ast = move_negations_in(ast);
+    ast = standardize_variables(ast);
 
+    const prenexResult = move_quantifiers_out(ast);
+    let prenexAst = prenexResult.matrix;
+    for (let i = prenexResult.quantifiers.length - 1; i >= 0; i--) {
+        const q = prenexResult.quantifiers[i];
+        prenexAst = { tipo: 'Quantificador', quantificador: q.quantificador, variavel: q.variavel, escopo: prenexAst };
+    }
+    ast = prenexAst;
 
+    ast = distribute_and_over_or(ast);
 
-    ast = eliminate_implications(ast);
+    // passos mostram o final também (opcional)
+    renderStep(containerId, ast_to_latex(ast), 'Resultado Final (FNDP)');
 
-    ast = move_negations_in(ast);
-
-    ast = standardize_variables(ast);
-
-   
-
-    const prenexResult = move_quantifiers_out(ast);
-
-    let prenexAst = prenexResult.matrix;
-
-    for (let i = prenexResult.quantifiers.length - 1; i >= 0; i--) {
-
-        const q = prenexResult.quantifiers[i];
-
-        prenexAst = { tipo: 'Quantificador', quantificador: q.quantificador, variavel: q.variavel, escopo: prenexAst };
-
-    }
-
-    ast = prenexAst;
-
-
-
-    ast = distribute_and_over_or(ast);
-
-   
-
-    renderStep(containerId, ast_to_latex(ast), 'Resultado Final (FNDP)');
+    // >>> RESULTADO FINAL no card
+    renderFinal(finalContainerId, ast_to_latex(ast), 'Resultado Final (FNDP)');
 
 }
 
 
 
-// Substitua a função convertToClausal inteira por esta:
-
-// Substitua a função convertToClausal inteira por esta:
-// Substitua a função convertToClausal inteira por esta versão que segue os slides
 function convertToClausal(originalAst) {
-    const clausalContainerId = 'clausal-displayer';
-    const hornContainerId = 'horn-displayer';
+    const clausalContainerId = 'steps-clausal'; // passos
+    const hornContainerId = 'steps-horn';       // passos (análise horn)
+
+    const finalClausalId = 'final-clausal';     // final no card
+    const finalHornId = 'final-horn';           // final no card
+
     let ast = deepCopy(originalAst);
 
     // Etapas para chegar na Forma Prenex (Passos 1-4 dos slides)
@@ -1168,38 +1126,96 @@ function convertToClausal(originalAst) {
     renderStep(clausalContainerId, ast_to_latex(prenexAst), 'Base (Forma Prenex)');
 
     // --- ORDEM CORRIGIDA PARA CORRESPONDER AOS SLIDES ---
-
     // Passo 5 dos slides: Skolemização (eliminar ∃)
     let skolemizedAst = skolemize(prenexAst);
     renderStep(clausalContainerId, ast_to_latex(skolemizedAst), '1. Skolemização');
-    
+
     // Passo 6 dos slides: Remover quantificadores universais (∀) para obter a matriz
     let matrix = drop_universal_quantifiers(skolemizedAst);
     renderStep(clausalContainerId, ast_to_latex(matrix), '2. Remoção de ∀ (Matriz)');
-    
+
     // Passo 7 dos slides: Converter a matriz para FNC
     matrix = distribute_or_over_and(matrix);
     renderStep(clausalContainerId, ast_to_latex(matrix), '3. Matriz em FNC');
 
-    // Passo final: Extrair as cláusulas da matriz em FNC
+    // Passo final: Extrair as cláusulas da matriz em FNC (passos)
     const clauses = matrix_to_clauses(matrix);
-
     const title = document.createElement('p');
     title.innerHTML = `<b>4. Cláusulas Finais:</b>`;
     document.getElementById(clausalContainerId).appendChild(title);
-
     clauses.forEach((clause, index) => {
         const clauseText = clause.join(' \\lor ');
         const p = document.createElement('p');
-        p.innerHTML = `<span style="color:darkred; font-weight:bold; margin-right: 10px;">${index + 1}.</span> <span>$$${clauseText}$$</span>`;
+        p.innerHTML = `<span style="font-weight:bold; margin-right: 10px;">${index + 1}.</span> <span>$$${clauseText}$$</span>`;
         document.getElementById(clausalContainerId).appendChild(p);
         MathJax.typesetPromise([p]);
     });
 
+    // >>> RESULTADO FINAL (CLAUSAL) no card
+    const finalList = document.createElement('div');
+    clauses.forEach(clause => {
+        const p = document.createElement('p');
+        p.innerHTML = `$$${clause.join(' \\lor ')}$$`;
+        finalList.appendChild(p);
+    });
+    document.getElementById(finalClausalId).appendChild(finalList);
+    MathJax.typesetPromise([finalList]);
+
+    // Análise/Passos de Horn (embaixo)
     identifyHornClauses(clauses, hornContainerId);
+
+    // >>> RESULTADO FINAL (HORN) no card
+    const horns = [];
+    clauses.forEach(clause => {
+        const positiveLiterals = clause.filter(lit => !lit.trim().startsWith('\\neg'));
+        if (positiveLiterals.length <= 1) {
+            const negativeLiterals = clause.filter(lit => lit.trim().startsWith('\\neg'))
+                                           .map(lit => lit.replace('\\neg', '').trim());
+            if (positiveLiterals.length === 1) {
+                const head = positiveLiterals[0];
+                const body = negativeLiterals.join(' \\land ');
+                horns.push(`${body ? body : 'true'} \\rightarrow ${head}`);
+            } else {
+                const body = negativeLiterals.join(' \\land ');
+                horns.push(`${body ? body : 'true'} \\rightarrow false`);
+            }
+        }
+    });
+
+    if (horns.length) {
+        const wrap = document.createElement('div');
+        horns.forEach(h => {
+            const p = document.createElement('p');
+            p.innerHTML = `$$${h}$$`;
+            wrap.appendChild(p);
+        });
+        document.getElementById(finalHornId).appendChild(wrap);
+        MathJax.typesetPromise([wrap]);
+    } else {
+        document.getElementById(finalHornId).textContent = 'Nenhuma Cláusula de Horn encontrada.';
+    }
 }
 
 
+
+// Função auxiliar para renderizar o RESULTADO FINAL (card 2x2)
+function renderFinal(elementId, stepLatex, description = '') {
+
+    const container = document.getElementById(elementId);
+
+    const p = document.createElement('p');
+
+    let content = description ? `<b>${description}:</b> ` : '';
+
+    content += `$$${stepLatex}$$`;
+
+    p.innerHTML = content;
+
+    container.appendChild(p);
+
+    MathJax.typesetPromise([p]);
+
+}
 
 
 // --- NOVAS FUNÇÕES DE TRANSFORMAÇÃO ---

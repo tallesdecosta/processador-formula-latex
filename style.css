@@ -1,73 +1,197 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Inter';
+/* layout base sem overflow lateral */
+* { box-sizing: border-box; }
+html, body { height: 100%; overflow-x: hidden; }
+body {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
-body 
-{
-
-    display: grid;
-    height: 100vh;
-    width: 100vw;
-    grid-template-rows: auto 1fr auto;
-
+header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: #1a1a1a !important; /* cor sólida */
+  color: #fff;
+  opacity: 1 !important;                 /* garante sem transparência */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
-header, footer 
-{
+/* (opcional) sombra sutil para separar do conteúdo */
+header { box-shadow: 0 2px 10px rgba(0,0,0,.12); }
 
-    text-align: center;
-    position: sticky;
-    padding: 15px;
-    background-color: rgb(26, 26, 26);
+header, footer {
+  position: sticky;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  color: #fff;
+  text-align: center;
+}
+header { top: 0; }
+footer { bottom: 0; }
+.p-footer a { color: #fff; }
 
+main {
+  width: 100%;
+  max-width: min(96vw, 1400px);
+  margin: 0 auto;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-header 
-{
+.wrapper { display: flex; flex-direction: column; gap: 12px; }
 
-    top: 0;
-
+/* cards neutros */
+.card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 20px;
 }
 
-footer 
-{
+/* grid 2×2 dos resultados finais */
+.cards-grid{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  grid-template-areas:
+    "fnc fnd"
+    "clausal horn";
+  gap: 24px;                 /* mais respiro entre cards */
+}
+.card--fnc{ grid-area: fnc; }
+.card--fnd{ grid-area: fnd; }
+.card--clausal{ grid-area: clausal; }
+.card--horn{ grid-area: horn; }
 
-    bottom: 0;
-
+/* cards um pouco maiores */
+.card{ padding: 20px; }
+@media (max-width: 860px){
+  .cards-grid{
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "fnc"
+      "fnd"
+      "clausal"
+      "horn";
+  }
 }
 
-main 
-{
 
-    margin: auto;
 
+/* input + botão lado a lado */
+.input-row { display: flex; gap: 10px; align-items: center; }
+.input-row input[type="text"] {
+  flex: 1 1 auto;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #cfcfcf;
+}
+.input-row button {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 0;
+  cursor: pointer;
+  background: #efefef;
 }
 
-h1, a
-{
-
-    color: white;
-    
+/* bloco que recebe fórmulas e passos (scroll local) */
+.math-container, .steps-box{
+  max-width: 100%;
+  overflow-x: auto;                  /* scroll só no bloco, não na página */
+  overflow-y: hidden;
+}
+.math-container mjx-container,
+.steps-box mjx-container{
+  display: block;
+  max-width: 100% !important;
+  overflow-x: auto;
 }
 
-.p-footer 
-{
+/* passo-a-passo “em linha” (um bloco por tipo) */
+#procedures {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+.steps-card {
+  background: #fafafa;
+  border: 1px dashed #e5e5e5;
+  border-radius: 12px;
+  padding: 12px;
+}
+.steps-box p { margin: 8px 0; line-height: 1.45; }
+.steps-box p + p { border-top: 1px dashed #e5e5e5; padding-top: 8px; }
 
-    color: white;
+/* MathJax respeita largura do contêiner */
+mjx-container { max-width: 100% !important; overflow-x: auto; }
 
+/* utilitário */
+.hidden { display: none !important; }
+
+/* ==== FIX PASSO-A-PASSO: título em cima, fórmula embaixo ==== */
+
+/* o contêiner dos passos nunca cria coluna lateral */
+.steps-box{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 100%;
+  overflow-x: hidden;        /* nada passa de 100% da tela */
 }
 
-
-.wrapper 
-{
-
-    display: flex;
-    gap: 25px;
-    flex-direction: column;
-    align-items: center;
+/* neutraliza layout antigo em grid/lado-a-lado */
+.step-row,
+.step-block{                 /* cobre os dois jeitos que você pode ter */
+  display: block !important;
+  padding: 12px 0;
+  border-top: 1px dashed #e5e5e5;
+  align-items: stretch !important;
+  grid-template-columns: none !important;
 }
+
+/* rótulo sempre ocupa a linha toda */
+.step-label,
+.step-title{
+  display: block;
+  font-weight: 600;
+  margin: 0 0 6px 0;         /* separa do conteúdo */
+  white-space: normal;       /* permite quebra de linha */
+}
+
+/* a fórmula vem embaixo, com scroll local se precisar */
+/* --- FIX definitivo: nada passa de 100% --- */
+
+/* Nunca deixe filhos flex/grid forçarem largura */
+.cards-grid > .card,
+.steps-card,
+.steps-box,
+.step-block,
+.step-math {
+  min-width: 0 !important;
+}
+
+/* Scroll só dentro da área da fórmula do passo */
+.step-math {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* MathJax obedecendo ao contêiner */
+.step-math mjx-container {
+  display: block;
+  max-width: 100% !important;
+  overflow-x: auto;
+  margin: 0;            /* remove margem extra do display math */
+  text-align: left;     /* evita “empurrar” pro centro */
+}
+
+/* Garantia extra (sem barra horizontal global) */
+html, body { overflow-x: hidden; }
+

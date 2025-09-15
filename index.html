@@ -1,42 +1,100 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="style.css">
-        <title>Processador de Fórmula Latex</title>
-    </head>
-    <body>
-        <header>
-            <h1>Processador de Fórmula Latex</h1>
-        </header>
-        <main>
-            <div class="wrapper">
-                <p id="formula-displayer"></p>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Processador de Fórmula LaTeX</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <header>
+        <h1>Processador de Fórmula LaTeX</h1>
+    </header>
+
+    <main>
+        <!-- Fórmula renderizada (só aparece após sucesso) -->
+        <div class="wrapper">
+            <div id="formula-card" class="card hidden">
+                <div id="formula-displayer" class="math-container"></div>
             </div>
-            <div class="wrapper">
-                <label for="formula">Insira sua fórmula no padrão Latex aqui:</label>
-                <input style="width: 100%;" type="text" name="formula" id="formula">
-                <button style="width: fit-content; padding: 5px 15px" onclick="mostrarFormula();">Processar</button>
+        </div>
+
+        <!-- Entrada -->
+        <div class="wrapper">
+            <div class="card">
+                <h2>Entrada de Fórmula</h2>
+                <label for="formula">Insira sua fórmula no padrão LaTeX aqui:</label>
+                <div class="input-row">
+                    <input type="text" id="formula" name="formula"
+                        placeholder="Ex: \\forall x (\\exists y (P(x) \\rightarrow Q(y)))" />
+                    <button onclick="mostrarFormula();">Processar</button>
+                </div>
             </div>
-            <div class="wrapper">
-                <h2>Fórmula Normal Conjuntiva Prenex</h2>
-                <p id="conjuntiva-displayer"></p>
+        </div>
+
+        <!-- RESULTADOS FINAIS (2×2) -->
+        <div id="results-grid" class="cards-grid hidden">
+            <div class="card card--fnc">
+                <h3>Fórmula Normal Conjuntiva Prenex</h3>
+                <div id="final-conjuntiva" class="math-container"></div>
             </div>
-            <div class="wrapper">
-                <p id="disjuntiva-displayer"></p>
+
+            <div class="card card--fnd">
+                <h3>Fórmula Normal Disjuntiva Prenex</h3>
+                <div id="final-disjuntiva" class="math-container"></div>
             </div>
-            <div class="wrapper">
-                <p id="clausal-displayer"></p>
+
+            <div class="card card--clausal">
+                <h3>Forma Clausal</h3>
+                <div id="final-clausal" class="math-container"></div>
             </div>
-            <div class="wrapper">
-                <p id="horn-displayer"></p>
+
+            <div class="card card--horn">
+                <h3>Cláusulas de Horn</h3>
+                <div id="final-horn" class="math-container"></div>
             </div>
-        </main>
-        <footer>
-            <p class="p-footer">Solução desenvolvida pelos estudantes Talles Telles da Costa (<a href="https://github.com/tallesdecosta">Github</a>, <a href="https://www.linkedin.com/in/tallesdecosta/">Linkedin</a>) e Victor Ryuki Tamezava (<a href="https://github.com/VicRuk">Github</a>, <a href="https://www.linkedin.com/in/victor-tamezava/">Linkedin</a>).</p>
-        </footer>
-    </body>
+        </div>
+
+
+
+        <!-- PASSO A PASSO (ABAIXO DOS CARDS, em linha) -->
+        <section id="procedures" class="hidden">
+            <div class="steps-card">
+                <h4>Passos — FNC Prenex</h4>
+                <div id="steps-conjuntiva" class="steps-box"></div>
+            </div>
+            <div class="steps-card">
+                <h4>Passos — FND Prenex</h4>
+                <div id="steps-disjuntiva" class="steps-box"></div>
+            </div>
+            <div class="steps-card">
+                <h4>Passos — Forma Clausal</h4>
+                <div id="steps-clausal" class="steps-box"></div>
+            </div>
+            <div class="steps-card">
+                <h4>Passos — Cláusulas de Horn</h4>
+                <div id="steps-horn" class="steps-box"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p class="p-footer">
+            Solução desenvolvida pelos estudantes Talles Telles da Costa
+            (<a href="https://github.com/tallesdecosta">Github</a>,
+            <a href="https://www.linkedin.com/in/tallesdecosta/">Linkedin</a>)
+            e Victor Ryuki Tamezava
+            (<a href="https://github.com/VicRuk">Github</a>,
+            <a href="https://www.linkedin.com/in/victor-tamezava/">Linkedin</a>).
+        </p>
+    </footer>
+
+    <!-- MathJax -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- App -->
     <script src="scripts/main.js"></script>
+</body>
+
 </html>
