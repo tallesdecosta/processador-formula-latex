@@ -82,47 +82,26 @@ console.log(ast)
 
 
 
-function tokenizar(string)
+function tokenizar(string) {
+    if (!string) return [];
 
-{
+    let stringLimpa = string.replace(/\\left\b|\\right\b/g, '');
 
-
-
-    if(!string)
-
-    {
+    const regex = /\\text\{[a-zA-Z][a-zA-Z0-9]*\}\([a-zA-Z0-9,\s]*\)|[A-Z][a-zA-Z0-9]*\([a-zA-Z0-9,\s]*\)|\\[a-zA-Z]+|[A-Z][a-zA-Z0-9]*|[a-z]|[(),]/g;
 
 
+    const tokensBrutos = stringLimpa.match(regex) || [];
 
-        return [];
+    const tokens = tokensBrutos.map(t =>
+        t === '\\wedge' ? '\\land'
+      : t === '\\vee'  ? '\\lor'
+      : t
+    );
 
-
-
-    }
-
-
-
-    console.log(string)
-
-
-
-    const regex = /\\[a-zA-Z]+|[A-Z][a-zA-Z]*\([a-zA-Z,\s]*\)|[A-Z]|[a-z]|\(|\)/g;
-
-    let stringLimpa = string.replace(/\\left\b|\\right\b/g, '');
-
-    console.log(stringLimpa)
-
-    const tokens = stringLimpa.match(regex);
-
-
-
-    return tokens;
-
-
-
-
-
+    return tokens;
 }
+
+
 
 
 
@@ -150,29 +129,34 @@ function fazerAST(tokens)
 
 
 
-    function processarAtomo() {
+function processarAtomo() {
+    const token = consumir();
 
-        const token = consumir();
+    if (token === '(') {
+        const formulaNode = processarFormula();
+        if (olhar() !== ')') {
+            throw new Error("Esperado ')'");
+        }
+        consumir();
+        return formulaNode;
+    }
 
-        if (token === '(') {
+    else if (token.match(/^[A-Z]/) || token.match(/^[a-z]$/)) {
+        return { tipo: 'Predicado', nome: token };
+    }
 
-            const formulaNode = processarFormula();
+    else if (token.startsWith('\\text{')) {
+        return { tipo: 'Predicado', nome: token };
+    }
+    else {
+        throw new Error(`Token inesperado: ${token}`);
+    }
+}
 
-            if (consumir() !== ')') throw new Error("Esperado ')'");
 
-            return formulaNode;
 
-        } else if (token.match(/^[A-Z]/) || token.match(/^[a-z]/)) {
 
-            return { tipo: 'Predicado', nome: token };
 
-        } else {
-
-            throw new Error(`Token inesperado: ${token}`);
-
-        }
-
-    }
 
 
 
